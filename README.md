@@ -39,3 +39,5 @@ Install dependencies:
 ```shell
 pip install -r requirements.txt
 ```
+
+The code was tested on MacBook Air M2 and 24GB of RAM with Python 3.10.11.
