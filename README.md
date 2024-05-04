@@ -6,7 +6,7 @@ This is based on [MLX Example for Stable Diffusion](https://github.com/ml-explor
 
 The `txt2image.py` script was modify to add `--single_-file` argument that allows to select a single file model in safetensors format. The model will be automatically unpacked and cached for future use.  You still need to use the `--model` argument to select the model type that the single file model is based on.  The available base models are `sdxl` and `sd`.  If you use a single file model, the `--model` argument is required.  However, if you use a `--model` argument without `--single_file` the base StabilityAI model will be downloaded from HuggingFace and used.
 
-The `txt2image.py` was also modified to add `--height` and `--width` to allow control of the output image size instead of the hardcoded default 64x64.
+The `txt2image.py` was also modified to add `--height` and `--width` to allow control of the output image size instead of the hardcoded default.  Notice that the height and width define the latent space size and not the output image size.  For example, if you use `--height 128 --width 64` the output image will be 512x1024 pixels.
 
 Here are some examples of how to use the `--single_file` argument:
 
