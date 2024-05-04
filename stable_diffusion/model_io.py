@@ -204,8 +204,6 @@ def load_unet(
         with open(hf_hub_download(key, unet_config)) as f:
             config = json.load(f)
 
-    print("config", config)
-
     n_blocks = len(config["block_out_channels"])
     transformer_layers_per_block = config.get(
         "transformer_layers_per_block", (1,) * 4

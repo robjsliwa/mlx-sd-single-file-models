@@ -195,8 +195,13 @@ class StableDiffusion:
 
 
 class StableDiffusionXL(StableDiffusion):
-    def __init__(self, model: str = _DEFAULT_MODEL, float16: bool = False):
-        super().__init__(model, float16)
+    def __init__(
+        self,
+        model: str = _DEFAULT_MODEL,
+        float16: bool = False,
+        file_path: Path = None,
+    ):
+        super().__init__(model, float16, file_path=file_path)
 
         self.sampler = SimpleEulerAncestralSampler(self.diffusion_config)
 
@@ -208,12 +213,21 @@ class StableDiffusionXL(StableDiffusion):
             model,
             float16,
             model_key="text_encoder_2",
+            file_path=file_path,
         )
         self.tokenizer_2 = load_tokenizer(
             model,
             merges_key="tokenizer_2_merges",
             vocab_key="tokenizer_2_vocab",
+            file_path=file_path,
         )
+
+    @staticmethod
+    def from_single_file(
+        file_path: Path, model: str = _DEFAULT_MODEL, float16: bool = False
+    ):
+        print("Loading model from single file")
+        return StableDiffusionXL(model, float16, file_path)
 
     def ensure_models_are_loaded(self):
         mx.eval(self.unet.parameters())

@@ -30,6 +30,8 @@ if __name__ == "__main__":
     parser.add_argument("--seed", type=int)
     parser.add_argument("--verbose", "-v", action="store_true")
     parser.add_argument("--single-file", type=str)
+    parser.add_argument("--width", type=int, default=64)
+    parser.add_argument("--height", type=int, default=64)
     args = parser.parse_args()
 
     # Load the models
@@ -47,6 +49,24 @@ if __name__ == "__main__":
             nn.quantize(sd.unet, group_size=32, bits=8)
         args.cfg = args.cfg or 7.5
         args.steps = args.steps or 50
+    elif args.single_file and args.model == "sdxl":
+        sd = StableDiffusionXL.from_single_file(
+            Path(args.single_file),
+            "stabilityai/sdxl-turbo",
+            float16=args.float16,
+        )
+        if args.quantize:
+            nn.quantize(
+                sd.text_encoder_1,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
+            )
+            nn.quantize(
+                sd.text_encoder_2,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
+            )
+            nn.quantize(sd.unet, group_size=32, bits=8)
+        args.cfg = args.cfg or 0.0
+        args.steps = args.steps or 2
     elif args.model == "sdxl":
         sd = StableDiffusionXL("stabilityai/sdxl-turbo", float16=args.float16)
         if args.quantize:
@@ -86,6 +106,7 @@ if __name__ == "__main__":
         num_steps=args.steps,
         seed=args.seed,
         negative_text=args.negative_prompt,
+        latent_size=(args.height, args.width),
     )
     for x_t in tqdm(latents, total=args.steps):
         mx.eval(x_t)
