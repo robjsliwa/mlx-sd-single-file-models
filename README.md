@@ -1,6 +1,6 @@
 # Stable Diffusion With Apple MLX and Support For Single File Models
 
-This is based on [MLX Example for Stable Diffusion](https://github.com/ml-explore/mlx-examples/tree/main/stable_diffusion) and adds support for single file models in safetensors format like the ones you can find on [Civitai](https://civitai.com/).
+This is based on [MLX Example for Stable Diffusion](https://github.com/ml-explore/mlx-examples/tree/main/stable_diffusion) and adds support for single file models in safetensors format like the ones you can find on [Civitai](https://civitai.com/).  More details in my [blog](https://medium.com/@robjsliwa_71070/how-to-use-civitai-models-with-apple-mlx-483cd68109ab)
 
 ## Text to Image
 
