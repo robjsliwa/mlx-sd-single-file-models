@@ -1,12 +1,17 @@
 # Copyright © 2023-2024 Apple Inc.
 
 import json
+import os
+import importlib
 from typing import Optional
 from pathlib import Path
 
 import mlx.core as mx
 from huggingface_hub import hf_hub_download
 from mlx.utils import tree_unflatten
+from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
+    download_from_original_stable_diffusion_ckpt,
+)
 
 from .clip import CLIPTextModel
 from .config import (
@@ -391,3 +396,33 @@ def load_tokenizer(
         bpe_ranks = dict(map(reversed, enumerate(bpe_merges)))
 
         return Tokenizer(bpe_ranks, vocab)
+
+
+def cache_model_from_single_file(
+    file_path: Path, pipeline_class_name: Optional[str] = None
+) -> Path:
+    cache_path = os.path.expanduser(
+        '~/.cache/mydiffusion/' + os.path.basename(file_path).split('.')[0]
+    )
+
+    if not os.path.exists(cache_path):
+        os.makedirs(cache_path, exist_ok=True)
+        print(
+            f"Directory {cache_path} created, proceeding to unpack the model."
+        )
+
+        if pipeline_class_name is not None:
+            library = importlib.import_module("diffusers")
+            class_obj = getattr(library, pipeline_class_name)
+            pipeline_class = class_obj
+        else:
+            pipeline_class = None
+
+        pipe = download_from_original_stable_diffusion_ckpt(
+            checkpoint_path=file_path,
+            from_safetensors=True,
+            pipeline_class=pipeline_class,
+            load_safety_checker=False,
+        )
+        pipe.save_pretrained(cache_path, safe_serialization=True)
+    return Path(cache_path)

@@ -6,3 +6,4 @@ tqdm==4.66.2
 Pillow
 diffusers==0.20.0
 omegaconf==2.3.0
+torch==2.3.0

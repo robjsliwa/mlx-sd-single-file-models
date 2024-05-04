@@ -1,5 +1,3 @@
-# Copyright © 2023 Apple Inc.
-
 import argparse
 import math
 
@@ -8,8 +6,10 @@ import mlx.nn as nn
 import numpy as np
 from PIL import Image
 from tqdm import tqdm
+from pathlib import Path
 
 from stable_diffusion import StableDiffusion, StableDiffusionXL
+from stable_diffusion.model_io import cache_model_from_single_file
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -30,18 +30,60 @@ if __name__ == "__main__":
     parser.add_argument("--preload-models", action="store_true")
     parser.add_argument("--output", default="out.png")
     parser.add_argument("--verbose", "-v", action="store_true")
+    parser.add_argument("--single-file", type=str)
     args = parser.parse_args()
 
     # Load the models
-    if args.model == "sdxl":
+    if args.single_file and args.model == "sd":
+        cached_path = cache_model_from_single_file(Path(args.single_file))
+        sd = StableDiffusion.from_single_file(
+            cached_path,
+            "stabilityai/stable-diffusion-2-1-base",
+            float16=args.float16,
+        )
+        if args.quantize:
+            nn.quantize(
+                sd.text_encoder,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
+            )
+            nn.quantize(sd.unet, group_size=32, bits=8)
+        args.cfg = args.cfg or 7.5
+        args.steps = args.steps or 50
+    elif args.single_file and args.model == "sdxl":
+        cached_path = cache_model_from_single_file(
+            Path(args.single_file), "StableDiffusionXLPipeline"
+        )
+        sd = StableDiffusionXL.from_single_file(
+            cached_path,
+            "stabilityai/sdxl-turbo",
+            float16=args.float16,
+        )
+        if args.quantize:
+            nn.quantize(
+                sd.text_encoder_1,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
+            )
+            nn.quantize(
+                sd.text_encoder_2,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
+            )
+
+            nn.quantize(sd.text_encoder_1)
+            nn.quantize(sd.text_encoder_2)
+            nn.quantize(sd.unet, group_size=32, bits=8)
+        args.cfg = args.cfg or 0.0
+        args.steps = args.steps or 2
+    elif args.model == "sdxl":
         sd = StableDiffusionXL("stabilityai/sdxl-turbo", float16=args.float16)
 
         if args.quantize:
             nn.quantize(
-                sd.text_encoder_1, class_predicate=lambda _, m: isinstance(m, nn.Linear)
+                sd.text_encoder_1,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
             )
             nn.quantize(
-                sd.text_encoder_2, class_predicate=lambda _, m: isinstance(m, nn.Linear)
+                sd.text_encoder_2,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
             )
 
             nn.quantize(sd.text_encoder_1)
@@ -55,7 +97,8 @@ if __name__ == "__main__":
         )
         if args.quantize:
             nn.quantize(
-                sd.text_encoder, class_predicate=lambda _, m: isinstance(m, nn.Linear)
+                sd.text_encoder,
+                class_predicate=lambda _, m: isinstance(m, nn.Linear),
             )
             nn.quantize(sd.unet, group_size=32, bits=8)
         args.cfg = args.cfg or 7.5
@@ -79,8 +122,12 @@ if __name__ == "__main__":
     # Make sure image shape is divisible by 64
     W, H = (dim - dim % 64 for dim in (img.width, img.height))
     if W != img.width or H != img.height:
-        print(f"Warning: image shape is not divisible by 64, downsampling to {W}x{H}")
-        img = img.resize((W, H), Image.NEAREST)  # use desired downsampling filter
+        print(
+            f"Warning: image shape is not divisible by 64, downsampling to {W}x{H}"
+        )
+        img = img.resize(
+            (W, H), Image.NEAREST
+        )  # use desired downsampling filter
 
     img = mx.array(np.array(img))
     img = (img[:, :, :3].astype(mx.float32) / 255) * 2 - 1
@@ -121,7 +168,9 @@ if __name__ == "__main__":
     x = mx.concatenate(decoded, axis=0)
     x = mx.pad(x, [(0, 0), (8, 8), (8, 8), (0, 0)])
     B, H, W, C = x.shape
-    x = x.reshape(args.n_rows, B // args.n_rows, H, W, C).transpose(0, 2, 1, 3, 4)
+    x = x.reshape(args.n_rows, B // args.n_rows, H, W, C).transpose(
+        0, 2, 1, 3, 4
+    )
     x = x.reshape(args.n_rows * H, B // args.n_rows * W, C)
     x = (x * 255).astype(mx.uint8)
 

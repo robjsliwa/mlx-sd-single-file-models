@@ -1,8 +1,4 @@
-# Copyright © 2023 Apple Inc.
-
 import argparse
-import os
-import importlib
 
 import mlx.core as mx
 import mlx.nn as nn
@@ -10,41 +6,9 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from pathlib import Path
-from typing import Optional
 
 from stable_diffusion import StableDiffusion, StableDiffusionXL
-from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
-    download_from_original_stable_diffusion_ckpt,
-)
-
-
-def cache_model_from_single_file(
-    file_path: Path, pipeline_class_name: Optional[str] = None
-) -> Path:
-    cache_path = os.path.expanduser(
-        '~/.cache/mydiffusion/' + os.path.basename(file_path).split('.')[0]
-    )
-
-    if not os.path.exists(cache_path):
-        os.makedirs(cache_path, exist_ok=True)
-        print(
-            f"Directory {cache_path} created, proceeding to unpack the model."
-        )
-
-        if pipeline_class_name is not None:
-            library = importlib.import_module("diffusers")
-            class_obj = getattr(library, pipeline_class_name)
-            pipeline_class = class_obj
-        else:
-            pipeline_class = None
-
-        pipe = download_from_original_stable_diffusion_ckpt(
-            checkpoint_path=file_path,
-            from_safetensors=True,
-            pipeline_class=pipeline_class,
-        )
-        pipe.save_pretrained(cache_path, safe_serialization=True)
-    return Path(cache_path)
+from stable_diffusion.model_io import cache_model_from_single_file
 
 
 if __name__ == "__main__":
