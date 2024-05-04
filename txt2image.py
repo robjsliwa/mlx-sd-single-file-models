@@ -1,6 +1,8 @@
 # Copyright © 2023 Apple Inc.
 
 import argparse
+import os
+import importlib
 
 import mlx.core as mx
 import mlx.nn as nn
@@ -8,8 +10,42 @@ import numpy as np
 from PIL import Image
 from tqdm import tqdm
 from pathlib import Path
+from typing import Optional
 
 from stable_diffusion import StableDiffusion, StableDiffusionXL
+from diffusers.pipelines.stable_diffusion.convert_from_ckpt import (
+    download_from_original_stable_diffusion_ckpt,
+)
+
+
+def cache_model_from_single_file(
+    file_path: Path, pipeline_class_name: Optional[str] = None
+) -> Path:
+    cache_path = os.path.expanduser(
+        '~/.cache/mydiffusion/' + os.path.basename(file_path).split('.')[0]
+    )
+
+    if not os.path.exists(cache_path):
+        os.makedirs(cache_path, exist_ok=True)
+        print(
+            f"Directory {cache_path} created, proceeding to unpack the model."
+        )
+
+        if pipeline_class_name is not None:
+            library = importlib.import_module("diffusers")
+            class_obj = getattr(library, pipeline_class_name)
+            pipeline_class = class_obj
+        else:
+            pipeline_class = None
+
+        pipe = download_from_original_stable_diffusion_ckpt(
+            checkpoint_path=file_path,
+            from_safetensors=True,
+            pipeline_class=pipeline_class,
+        )
+        pipe.save_pretrained(cache_path, safe_serialization=True)
+    return Path(cache_path)
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -36,8 +72,9 @@ if __name__ == "__main__":
 
     # Load the models
     if args.single_file and args.model == "sd":
+        cached_path = cache_model_from_single_file(Path(args.single_file))
         sd = StableDiffusion.from_single_file(
-            Path(args.single_file),
+            cached_path,
             "stabilityai/stable-diffusion-2-1-base",
             float16=args.float16,
         )
@@ -50,8 +87,11 @@ if __name__ == "__main__":
         args.cfg = args.cfg or 7.5
         args.steps = args.steps or 50
     elif args.single_file and args.model == "sdxl":
+        cached_path = cache_model_from_single_file(
+            Path(args.single_file), "StableDiffusionXLPipeline"
+        )
         sd = StableDiffusionXL.from_single_file(
-            Path(args.single_file),
+            cached_path,
             "stabilityai/sdxl-turbo",
             float16=args.float16,
         )

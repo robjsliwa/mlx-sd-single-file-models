@@ -257,7 +257,6 @@ def load_text_encoder(
     """Load the stable diffusion text encoder from Hugging Face Hub."""
     _check_key(key, "load_text_encoder")
 
-    print("model_key", model_key)
     config_key = config_key or (model_key + "_config")
 
     # Download the config and create the model

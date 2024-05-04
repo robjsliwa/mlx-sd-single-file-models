@@ -1,6 +1,8 @@
 mlx>=0.11
-huggingface-hub
-regex
-numpy
-tqdm
+huggingface-hub==0.22.2
+regex==2024.4.16
+numpy==1.26.4
+tqdm==4.66.2
 Pillow
+diffusers==0.20.0
+omegaconf==2.3.0
